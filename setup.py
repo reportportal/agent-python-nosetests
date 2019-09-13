@@ -15,8 +15,6 @@ tar_url = 'https://github.com/reportportal/agent-python-nosetests'
 requirements = [
     'reportportal-client>=3.1.0',
     'nose>=1.3.0',
-    'six>=1.10.0',
-    'dill>=0.2.7.1',
 ]
 
 
@@ -35,15 +33,15 @@ setup(
     license='Apache 2.0',
     keywords=['testing', 'reporting', 'reportportal', 'nose'],
     classifiers=[
-        'Framework :: Pytest',
+        'Framework :: nose',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6'
         ],
     entry_points={
-        'nose': [
-            'nose_reportportal = nose_reportportal.plugin',
+        'nose.plugins.0.10': [
+            'nose_reportportal = nose_reportportal.plugin:ReportPortalPlugin',
         ]
     },
 )
