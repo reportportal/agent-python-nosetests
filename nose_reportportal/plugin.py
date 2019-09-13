@@ -1,21 +1,17 @@
-import logging
-import re
 import sys
-import os
-import subprocess
+if sys.version_info.major == 2:
+    import ConfigParser as configparser
+else:
+    import configparser
+import logging
 import traceback
-from mimetypes import guess_type
-import configparser
-
-from reportportal_client import ReportPortalServiceAsync, ReportPortalService
-
-from nose.plugins.base import Plugin
-from nose.util import src, tolist
 from time import time
 
-
+from nose.plugins.base import Plugin
+from reportportal_client import ReportPortalServiceAsync
 
 log = logging.getLogger(__name__)
+
 
 def timestamp():
     return str(int(time() * 1000))
@@ -53,7 +49,7 @@ class RPNoseLogHandler(logging.Handler):
         self.endpoint = endpoint
 
     def filter(self, record):
-        #if self.filter_reportportal_client_logs is False:
+        # if self.filter_reportportal_client_logs is False:
         #    return True
         if record.name.startswith(self.ignored_record_names):
             return False
@@ -78,8 +74,9 @@ class RPNoseLogHandler(logging.Handler):
             if level <= record.levelno:
 
                 return self.service.log(timestamp(), msg, level=self._loglevel_map[level],
-                    attachment=record.__dict__.get('attachment', None)
-                )
+                                        attachment=record.__dict__.get('attachment', None)
+                                        )
+
 
 class ReportPortalPlugin(Plugin):
     can_configure = True
@@ -87,6 +84,7 @@ class ReportPortalPlugin(Plugin):
     status = {}
     enableOpt = None
     name = "reportportal"
+
     def options(self, parser, env):
         """
         Add options to command line.
@@ -122,7 +120,16 @@ class ReportPortalPlugin(Plugin):
 
             self.conf = conf
             self.rp_config = options.rp_config
-            config = configparser.ConfigParser()
+            config = configparser.ConfigParser(
+                defaults={
+                    'rp_uuid': '',
+                    'rp_endpoint': '',
+                    'rp_project': '',
+                    'rp_launch': '{}',
+                    'rp_launch_tags': '',
+                    'rp_launch_description': ''
+                }
+            )
             config.read(self.rp_config)
 
             if options.rp_launch:
@@ -130,19 +137,19 @@ class ReportPortalPlugin(Plugin):
             else:
                 slaunch = "(unit tests)"
                 if "type=integration" in options.attr:
-                    slaunch ="(integration tests)"
+                    slaunch = "(integration tests)"
                 elif "type=component" in options.attr:
                     slaunch = "(component tests)"
 
             self.rp_mode = options.rp_mode or "DEBUG"
             self.clear = True
-            if "base" in config:
-                self.rp_uuid = config.get("base", "rp_uuid", fallback="")
-                self.rp_endpoint = config.get("base", "rp_endpoint", fallback="")
-                self.rp_project = config.get("base", "rp_project", fallback="")
-                self.rp_launch = config.get("base", "rp_launch", fallback="{}").format(slaunch)
-                self.rp_launch_tags = config.get("base", "rp_launch_tags", fallback="")
-                self.rp_launch_description = config.get("base", "rp_launch_description", fallback="")
+            if "base" in config.sections():
+                self.rp_uuid = config.get("base", "rp_uuid")
+                self.rp_endpoint = config.get("base", "rp_endpoint")
+                self.rp_project = config.get("base", "rp_project")
+                self.rp_launch = config.get("base", "rp_launch").format(slaunch)
+                self.rp_launch_tags = config.get("base", "rp_launch_tags")
+                self.rp_launch_description = config.get("base", "rp_launch_description")
 
     def setupLoghandler(self):
         # setup our handler with root logger
@@ -181,17 +188,17 @@ class ReportPortalPlugin(Plugin):
         perform any setup needed before testing begins.
         """
         self.service = ReportPortalServiceAsync(endpoint=self.rp_endpoint, project=self.rp_project,
-                                                   token=self.rp_uuid, error_handler=my_error_handler, queue_get_timeout=20)
+                                                token=self.rp_uuid, error_handler=my_error_handler,
+                                                queue_get_timeout=20)
 
         log.setLevel(logging.DEBUG)
 
         # Start launch.
         self.launch = self.service.start_launch(name=self.rp_launch,
-                                      start_time=timestamp(),
-                                      description=self.rp_launch_description, mode=self.rp_mode)
-        self.handler = RPNoseLogHandler(service=self.service, level=logging.DEBUG,endpoint=self.rp_endpoint)
+                                                start_time=timestamp(),
+                                                description=self.rp_launch_description)
+        self.handler = RPNoseLogHandler(service=self.service, level=logging.DEBUG, endpoint=self.rp_endpoint)
         self.setupLoghandler()
-
 
     def finalize(self, result):
         """Called after all report output, including output from all
@@ -215,7 +222,6 @@ class ReportPortalPlugin(Plugin):
         # Failure to call terminate() may result in lost data.
         self.service.terminate()
 
-
     def startTest(self, test):
         """Prepare or wrap an individual test case. Called before
         execution of the test. The test passed here is a
@@ -232,16 +238,19 @@ class ReportPortalPlugin(Plugin):
         :param test: the test case
         :type test: :class:`nose.case.Test`
         """
-
+        tags = []
+        try:
+            tags = test.test.suites
+        except AttributeError:
+            pass
         self.service.start_test_item(name=str(test),
-                                       description=test.test._testMethodDoc,
-                                       tags=test.test.suites,
-                                       start_time=timestamp(),
-                                       item_type='TEST',
-                                       parameters={})
+                                     description=test.test._testMethodDoc,
+                                     tags=tags,
+                                     start_time=timestamp(),
+                                     item_type='TEST',
+                                     parameters={})
         self.setupLoghandler()
         self.service.log(timestamp(), str(test), "INFO")
-
 
     def addDeprecated(self, test):
         """Called when a deprecated test is seen. DO NOT return a value
@@ -270,7 +279,6 @@ class ReportPortalPlugin(Plugin):
         """
         self._sendError(test, err)
 
-
     def addFailure(self, test, err):
         """Called when a test fails. DO NOT return a value unless you
         want to stop other plugins from seeing that the test has failed.
@@ -282,7 +290,6 @@ class ReportPortalPlugin(Plugin):
         """
         self._sendError(test, err)
 
-
     def addSkip(self, test):
         """Called when a test is skipped. DO NOT return a value unless
         you want to stop other plugins from seeing the skipped test.
@@ -290,7 +297,6 @@ class ReportPortalPlugin(Plugin):
         .. warning:: DEPRECATED -- check error class in addError instead
         """
         self.service.log(timestamp(), "SKIPPED test", "INFO")
-
 
     def addSuccess(self, test):
         """Called when a test passes. DO NOT return a value unless you
@@ -300,7 +306,6 @@ class ReportPortalPlugin(Plugin):
         :type test: :class:`nose.case.Test`
         """
         self.service.log(time=timestamp(), message="OK", level="INFO")
-
 
     def stopTest(self, test):
         """Called after each test is run. DO NOT return a value unless
