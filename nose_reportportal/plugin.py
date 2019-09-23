@@ -253,7 +253,7 @@ class ReportPortalPlugin(Plugin):
 
         .. warning :: DEPRECATED -- check error class in addError instead
         """
-        test.status = "depricated"
+        test.status = "deprecated"
         self.service.post_log("Deprecated test")
 
     def _sendError(self, test, err):
