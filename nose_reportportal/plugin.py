@@ -136,10 +136,11 @@ class ReportPortalPlugin(Plugin):
                 slaunch = options.rp_launch
             else:
                 slaunch = "(unit tests)"
-                if "type=integration" in options.attr:
-                    slaunch = "(integration tests)"
-                elif "type=component" in options.attr:
-                    slaunch = "(component tests)"
+                if options.attr:
+                    if "type=integration" in options.attr:
+                        slaunch = "(integration tests)"
+                    elif "type=component" in options.attr:
+                        slaunch = "(component tests)"
 
             self.rp_mode = options.rp_mode or "DEBUG"
             self.clear = True
@@ -238,6 +239,7 @@ class ReportPortalPlugin(Plugin):
         :param test: the test case
         :type test: :class:`nose.case.Test`
         """
+        test.status = None
         tags = []
         try:
             tags = test.test.suites
@@ -259,6 +261,7 @@ class ReportPortalPlugin(Plugin):
 
         .. warning :: DEPRECATED -- check error class in addError instead
         """
+        test.status = "depticated"
         self.service.log(timestamp(), "Deprecated test", "INFO")
 
     def _sendError(self, test, err):
@@ -277,6 +280,7 @@ class ReportPortalPlugin(Plugin):
         :param err: sys.exc_info() tuple
         :type err: 3-tuple
         """
+        test.status = "error"
         self._sendError(test, err)
 
     def addFailure(self, test, err):
@@ -288,6 +292,7 @@ class ReportPortalPlugin(Plugin):
         :param err: 3-tuple
         :type err: sys.exc_info() tuple
         """
+        test.status = "failed"
         self._sendError(test, err)
 
     def addSkip(self, test):
@@ -296,6 +301,7 @@ class ReportPortalPlugin(Plugin):
 
         .. warning:: DEPRECATED -- check error class in addError instead
         """
+        test.status = "skipped"
         self.service.log(timestamp(), "SKIPPED test", "INFO")
 
     def addSuccess(self, test):
@@ -305,6 +311,7 @@ class ReportPortalPlugin(Plugin):
         :param test: the test case
         :type test: :class:`nose.case.Test`
         """
+        test.status = "success"
         self.service.log(time=timestamp(), message="OK", level="INFO")
 
     def stopTest(self, test):
@@ -317,9 +324,9 @@ class ReportPortalPlugin(Plugin):
         if test.capturedOutput:
             self.service.log(timestamp(), str(test.capturedOutput), "INFO")
 
-        if test.test._outcome.skipped:
+        if test.status == "skipped":
             self.service.finish_test_item(end_time=timestamp(), status="SKIPPED")
-        elif test.test._outcome.success:
+        elif test.status == "success":
             self.service.finish_test_item(end_time=timestamp(), status="PASSED")
         else:
             self.service.finish_test_item(end_time=timestamp(), status="FAILED")
