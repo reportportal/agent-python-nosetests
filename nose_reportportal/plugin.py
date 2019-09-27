@@ -5,28 +5,11 @@ else:
     import configparser
 import logging
 import traceback
-from time import time
-
+import time
 from nose.plugins.base import Plugin
-from reportportal_client import ReportPortalServiceAsync
+from service import NoseServiceClass
 
 log = logging.getLogger(__name__)
-
-
-def timestamp():
-    return str(int(time() * 1000))
-
-
-def my_error_handler(exc_info):
-    """
-    This callback function will be called by async service client when error occurs.
-    Return True if error is not critical and you want to continue work.
-    :param exc_info: result of sys.exc_info() -> (type, value, traceback)
-    :return:
-    """
-    print("Error occurred: {}".format(exc_info[1]))
-    traceback.print_exception(*exc_info)
-
 
 class RPNoseLogHandler(logging.Handler):
     # Map loglevel codes from `logging` module to ReportPortal text names:
@@ -73,9 +56,8 @@ class RPNoseLogHandler(logging.Handler):
         for level in self._sorted_levelnos:
             if level <= record.levelno:
 
-                return self.service.log(timestamp(), msg, level=self._loglevel_map[level],
-                                        attachment=record.__dict__.get('attachment', None)
-                                        )
+                return self.service.post_log(msg, loglevel=self._loglevel_map[level],
+                                        attachment=record.__dict__.get('attachment', None))
 
 
 class ReportPortalPlugin(Plugin):
@@ -106,6 +88,12 @@ class ReportPortalPlugin(Plugin):
                           default=None,
                           dest='rp_mode',
                           help='level of logging')
+
+        parser.add_option('--rp-launch-description',
+                          action='store',
+                          default=None,
+                          dest='rp_launch_description',
+                          help='description of a lauch')
 
     def configure(self, options, conf):
         """
@@ -150,7 +138,7 @@ class ReportPortalPlugin(Plugin):
                 self.rp_project = config.get("base", "rp_project")
                 self.rp_launch = config.get("base", "rp_launch").format(slaunch)
                 self.rp_launch_tags = config.get("base", "rp_launch_tags")
-                self.rp_launch_description = config.get("base", "rp_launch_description")
+                self.rp_launch_description = options.rp_launch_description or config.get("base", "rp_launch_description")
 
     def setupLoghandler(self):
         # setup our handler with root logger
@@ -188,18 +176,20 @@ class ReportPortalPlugin(Plugin):
         """Called before any tests are collected or run. Use this to
         perform any setup needed before testing begins.
         """
-        self.service = ReportPortalServiceAsync(endpoint=self.rp_endpoint, project=self.rp_project,
-                                                token=self.rp_uuid, error_handler=my_error_handler,
-                                                queue_get_timeout=20)
-
-        log.setLevel(logging.DEBUG)
+        self.service = NoseServiceClass()
+        
+        self.service.init_service(endpoint=self.rp_endpoint,
+                                  project=self.rp_project,
+                                  token=self.rp_uuid,
+                                  ignore_errors=False)
 
         # Start launch.
         self.launch = self.service.start_launch(name=self.rp_launch,
-                                                start_time=timestamp(),
-                                                description=self.rp_launch_description)
-        self.handler = RPNoseLogHandler(service=self.service, level=logging.DEBUG, endpoint=self.rp_endpoint)
-        self.setupLoghandler()
+                                                description=self.rp_launch_description,
+                                                mode=self.rp_mode)
+
+        #self.handler = RPNoseLogHandler(service=self.service, level=logging.DEBUG, endpoint=self.rp_endpoint)
+        #self.setupLoghandler()
 
     def finalize(self, result):
         """Called after all report output, including output from all
@@ -216,12 +206,12 @@ class ReportPortalPlugin(Plugin):
            **before** the default report output is sent.
         """
         # Finish launch.
-        self.service.finish_launch(end_time=timestamp())
+        self.service.finish_launch()
 
         # Due to async nature of the service we need to call terminate() method which
         # ensures all pending requests to server are processed.
         # Failure to call terminate() may result in lost data.
-        self.service.terminate()
+        self.service.terminate_service()
 
     def startTest(self, test):
         """Prepare or wrap an individual test case. Called before
@@ -240,19 +230,7 @@ class ReportPortalPlugin(Plugin):
         :type test: :class:`nose.case.Test`
         """
         test.status = None
-        tags = []
-        try:
-            tags = test.test.suites
-        except AttributeError:
-            pass
-        self.service.start_test_item(name=str(test),
-                                     description=test.test._testMethodDoc,
-                                     tags=tags,
-                                     start_time=timestamp(),
-                                     item_type='TEST',
-                                     parameters={})
-        self.setupLoghandler()
-        self.service.log(timestamp(), str(test), "INFO")
+        self.service.start_nose_item(self, test)
 
     def addDeprecated(self, test):
         """Called when a deprecated test is seen. DO NOT return a value
@@ -262,12 +240,12 @@ class ReportPortalPlugin(Plugin):
         .. warning :: DEPRECATED -- check error class in addError instead
         """
         test.status = "depricated"
-        self.service.log(timestamp(), "Deprecated test", "INFO")
+        self.service.post_log("Deprecated test")
 
     def _sendError(self, test, err):
         etype, value, tb = err
-        self.service.log(timestamp(), value, "INFO")
-        self.service.log(timestamp(), str(etype.__name__) + ":\n" +
+        self.service.post_log(value)
+        self.service.post_log(str(etype.__name__) + ":\n" +
                          "".join(traceback.format_tb(tb)), "ERROR")
 
     def addError(self, test,  err):
@@ -302,7 +280,7 @@ class ReportPortalPlugin(Plugin):
         .. warning:: DEPRECATED -- check error class in addError instead
         """
         test.status = "skipped"
-        self.service.log(timestamp(), "SKIPPED test", "INFO")
+        self.service.post_log("SKIPPED test")
 
     def addSuccess(self, test):
         """Called when a test passes. DO NOT return a value unless you
@@ -312,7 +290,7 @@ class ReportPortalPlugin(Plugin):
         :type test: :class:`nose.case.Test`
         """
         test.status = "success"
-        self.service.log(time=timestamp(), message="OK", level="INFO")
+        self.service.post_log(message="OK")
 
     def stopTest(self, test):
         """Called after each test is run. DO NOT return a value unless
@@ -322,11 +300,14 @@ class ReportPortalPlugin(Plugin):
         :type test: :class:`nose.case.Test`
         """
         if test.capturedOutput:
-            self.service.log(timestamp(), str(test.capturedOutput), "INFO")
+            self.service.post_log(str(test.capturedOutput))
 
         if test.status == "skipped":
-            self.service.finish_test_item(end_time=timestamp(), status="SKIPPED")
+            self.service.finish_nose_item(status="SKIPPED")
         elif test.status == "success":
-            self.service.finish_test_item(end_time=timestamp(), status="PASSED")
+            self.service.finish_nose_item(status="PASSED")
         else:
-            self.service.finish_test_item(end_time=timestamp(), status="FAILED")
+            self.service.finish_nose_item(status="FAILED")
+
+    def describeTest(self, test):
+        return test.test._testMethodDoc
