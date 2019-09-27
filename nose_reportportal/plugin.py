@@ -324,9 +324,25 @@ class ReportPortalPlugin(Plugin):
         if test.capturedOutput:
             self.service.log(timestamp(), str(test.capturedOutput), "INFO")
 
+        if sys.version_info.major == 2:
+            self._stop_test_2(test)
+        elif sys.version_info.major == 3:
+            self._stop_test_3(test)
+
+
+    def _stop_test_2(self, test):
         if test.status == "skipped":
             self.service.finish_test_item(end_time=timestamp(), status="SKIPPED")
         elif test.status == "success":
+            self.service.finish_test_item(end_time=timestamp(), status="PASSED")
+        else:
+            self.service.finish_test_item(end_time=timestamp(), status="FAILED")
+
+
+    def _stop_test_3(self, test):   
+        if test.test._outcome.skipped:
+            self.service.finish_test_item(end_time=timestamp(), status="SKIPPED")
+        elif test.test._outcome.success:
             self.service.finish_test_item(end_time=timestamp(), status="PASSED")
         else:
             self.service.finish_test_item(end_time=timestamp(), status="FAILED")
