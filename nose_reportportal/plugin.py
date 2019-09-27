@@ -7,7 +7,7 @@ import logging
 import traceback
 import time
 from nose.plugins.base import Plugin
-from service import NoseServiceClass
+from .service import NoseServiceClass
 
 log = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ class ReportPortalPlugin(Plugin):
         perform any setup needed before testing begins.
         """
         self.service = NoseServiceClass()
-        
+
         self.service.init_service(endpoint=self.rp_endpoint,
                                   project=self.rp_project,
                                   token=self.rp_uuid,
@@ -302,6 +302,13 @@ class ReportPortalPlugin(Plugin):
         if test.capturedOutput:
             self.service.post_log(str(test.capturedOutput))
 
+        if sys.version_info.major == 2:
+            self._stop_test_2(test)
+        elif sys.version_info.major == 3:
+            self._stop_test_3(test)
+
+
+    def _stop_test_2(self, test):
         if test.status == "skipped":
             self.service.finish_nose_item(status="SKIPPED")
         elif test.status == "success":
@@ -311,3 +318,11 @@ class ReportPortalPlugin(Plugin):
 
     def describeTest(self, test):
         return test.test._testMethodDoc
+
+    def _stop_test_3(self, test):
+        if test.test._outcome.skipped:
+            self.service.finish_test_item(end_time=timestamp(), status="SKIPPED")
+        elif test.test._outcome.success:
+            self.service.finish_test_item(end_time=timestamp(), status="PASSED")
+        else:
+            self.service.finish_test_item(end_time=timestamp(), status="FAILED")
