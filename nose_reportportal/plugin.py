@@ -321,8 +321,8 @@ class ReportPortalPlugin(Plugin):
 
     def _stop_test_3(self, test):
         if test.test._outcome.skipped:
-            self.service.finish_test_item(end_time=timestamp(), status="SKIPPED")
+            self.service.finish_nose_item(status="SKIPPED")
         elif test.test._outcome.success:
-            self.service.finish_test_item(end_time=timestamp(), status="PASSED")
+            self.service.finish_nose_item(status="PASSED")
         else:
-            self.service.finish_test_item(end_time=timestamp(), status="FAILED")
+            self.service.finish_nose_item(status="FAILED")
