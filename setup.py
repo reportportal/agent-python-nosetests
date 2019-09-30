@@ -22,7 +22,7 @@ setup(
     name='nose-reportportal',
     version=version,
     description='Agent for Reporting results of tests to the Report Portal',
-    long_description=read_file('README.rst'),
+    long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
     author='Dzmitry Kolb',
     author_email='dm.kolb@gmail.com',
@@ -33,7 +33,6 @@ setup(
     license='Apache 2.0',
     keywords=['testing', 'reporting', 'reportportal', 'nose'],
     classifiers=[
-        'Framework :: nose',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
