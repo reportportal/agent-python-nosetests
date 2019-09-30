@@ -8,6 +8,7 @@ Nose plugin for reporting test results of Nose to the 'Reportal Portal'.
 * Configuration
 * Launching
 * Copyright Notice
+* Changes in v0.0.2
 
 # Usage
 
@@ -75,3 +76,6 @@ Licensed under the Apache License Version 2.0, license (see the LICENSE file).
 
 Apache License Version 2.0:  http://www.apache.org/licenses/LICENSE-2.0
 
+# Changes in v0.0.2 
+
+Added updated capturing for output and logs
