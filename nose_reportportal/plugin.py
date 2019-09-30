@@ -85,7 +85,7 @@ class ReportPortalPlugin(Plugin):
 
         parser.add_option('--rp-mode',
                           action='store',
-                          default=None,
+                          default="DEFAULT",
                           dest='rp_mode',
                           help='level of logging')
 
@@ -130,7 +130,7 @@ class ReportPortalPlugin(Plugin):
                     elif "type=component" in options.attr:
                         slaunch = "(component tests)"
 
-            self.rp_mode = options.rp_mode or "DEBUG"
+            self.rp_mode = options.rp_mode if options.rp_mode in ("DEFAULT", "DEBUG") else "DEFAULT"
             self.clear = True
             if "base" in config.sections():
                 self.rp_uuid = config.get("base", "rp_uuid")
