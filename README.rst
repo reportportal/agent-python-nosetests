@@ -36,6 +36,8 @@ The :code:`rp.ini` file should have next mandatory fields:
 - :code:`rp_uuid` - value could be found in the User Profile section
 - :code:`rp_project` - name of project in Report Potal
 - :code:`rp_endpoint` - address of Report Portal Server
+- :code:`rp_launch` - name of a launch
+- :code:`rp_launch_description` - description of a launch
 
 Example of :code:`rp.ini`:
 
@@ -49,8 +51,12 @@ Example of :code:`rp.ini`:
     rp_launch_tags = Nose;Smoke
     rp_launch_description = Smoke test
 
-If you like to override the above parameters from command line, or from CI environment based on your build, then pass
-- :code:`--rp-launch "(unit tests)"` during invocation.
+You need to add --rp-config-file to point to config file
+- :code:`--rp-config-file rp.ini`
+If you like to override some of parameters above from command line, or from CI environment based on your build, then pass
+- :code:`--rp-launch` to change launch name.
+- :code:`--rp-mode` to change mode of run report portal agent
+- :code:`--rp-launch-description` to change description of a launch
 
 Launching
 ~~~~~~~~~
@@ -59,7 +65,8 @@ To run test with Report Portal you must provide '--with-reportportal' flag:
 
 .. code-block:: bash
 
-    tox --with-reportportal
+    nosetests --with-reportportal --rp-config-file rp.ini
+
 
 
 Copyright Notice
