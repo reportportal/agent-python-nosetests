@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import os
 import sys
 if sys.version_info.major == 2:
     import ConfigParser as configparser
@@ -37,7 +37,7 @@ class RPNoseLogHandler(MyMemoryHandler):
     def __init__(self):
         logformat = '%(name)s: %(levelname)s: %(message)s'
         logdatefmt = None
-        filters = ['-nose', '-reportportal_client.service_async']
+        filters = ['-nose', '-reportportal_client.service_async', '-reportportal_client.service']
         super(RPNoseLogHandler, self).__init__(logformat, logdatefmt, filters)
 
 class ReportPortalPlugin(Plugin):
@@ -122,6 +122,7 @@ class ReportPortalPlugin(Plugin):
             if "base" in config.sections():
                 self.rp_uuid = config.get("base", "rp_uuid")
                 self.rp_endpoint = config.get("base", "rp_endpoint")
+                os.environ["RP_ENDPOINT"] = self.rp_endpoint
                 self.rp_project = config.get("base", "rp_project")
                 self.rp_launch = config.get("base", "rp_launch").format(slaunch)
                 self.rp_launch_tags = config.get("base", "rp_launch_tags")
