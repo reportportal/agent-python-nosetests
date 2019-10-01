@@ -37,7 +37,9 @@ class RPNoseLogHandler(MyMemoryHandler):
     def __init__(self):
         logformat = '%(name)s: %(levelname)s: %(message)s'
         logdatefmt = None
-        filters = ['-nose', '-reportportal_client.service_async', '-reportportal_client.service']
+        filters = ['-nose', '-reportportal_client.service_async', 
+                   '-reportportal_client.service', '-nose_reportportal.plugin',
+                   '-nose_reportportal.service']
         super(RPNoseLogHandler, self).__init__(logformat, logdatefmt, filters)
 
 class ReportPortalPlugin(Plugin):
@@ -358,15 +360,24 @@ class ReportPortalPlugin(Plugin):
         test.capturedLogging = self.formatLogRecords()
 
         if test.capturedOutput:
-            self.service.post_log(str(test.capturedOutput))
+            try: 
+                self.service.post_log(safe_str(test.capturedOutput))
+            except Exception:
+                log.exception('Unexpected error during sending capturedOutput.')
 
         if test.capturedLogging:
             for x in test.capturedLogging:
-                self.service.post_log(x)
+                try: 
+                    self.service.post_log(safe_str(x))
+                except Exception:
+                    log.exception('Unexpected error during sending capturedLogging.')
 
         if test.errors:
-            self.service.post_log(test.errors[0])
-            self.service.post_log(test.errors[1], loglevel="ERROR")
+            try: 
+                self.service.post_log(safe_str(test.errors[0]))
+                self.service.post_log(safe_str(test.errors[1]), loglevel="ERROR")
+            except Exception:
+                log.exception('Unexpected error during sending errors.')
 
         if sys.version_info.major == 2:
             self._stop_test_2(test)
