@@ -137,11 +137,13 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
         if self.RP is None:
             return
 
+        self.post_log(status)
         fta_rq = {
             'end_time': timestamp(),
             'status': status,
             'issue': issue,
         }
+
         self.RP.finish_test_item(**fta_rq)
 
     def finish_launch(self, launch=None, status='rp_launch'):

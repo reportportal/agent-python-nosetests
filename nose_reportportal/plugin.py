@@ -11,68 +11,34 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import os
 import sys
 if sys.version_info.major == 2:
     import ConfigParser as configparser
+    from StringIO import StringIO
 else:
     import configparser
+    from io import StringIO
+
+import threading
 import logging
 import traceback
-import time
 from nose.plugins.base import Plugin
+from nose.plugins.logcapture import MyMemoryHandler
 from .service import NoseServiceClass
+
+from nose.pyversion import exc_to_unicode, force_unicode
+from nose.util import safe_str
 
 log = logging.getLogger(__name__)
 
-class RPNoseLogHandler(logging.Handler):
-    # Map loglevel codes from `logging` module to ReportPortal text names:
-    _loglevel_map = {
-        logging.NOTSET: 'TRACE',
-        logging.DEBUG: 'DEBUG',
-        logging.INFO: 'INFO',
-        logging.WARNING: 'WARN',
-        logging.ERROR: 'ERROR',
-        logging.CRITICAL: 'ERROR',
-    }
-    _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
 
-    def __init__(self, service,
-                 level=logging.NOTSET,
-                 endpoint=None):
-        super(RPNoseLogHandler, self).__init__(level)
-        self.service = service
-        self.ignored_record_names = ('reportportal_client',)
-        self.endpoint = endpoint
-
-    def filter(self, record):
-        # if self.filter_reportportal_client_logs is False:
-        #    return True
-        if record.name.startswith(self.ignored_record_names):
-            return False
-        if record.name == 'urllib3.connectionpool':
-            # Filter the reportportal_client requests instance
-            # urllib3 usage
-            if self.endpoint in self.format(record):
-                return False
-        return True
-
-    def emit(self, record):
-        msg = ''
-
-        try:
-            msg = self.format(record)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except Exception:
-            self.handleError(record)
-
-        for level in self._sorted_levelnos:
-            if level <= record.levelno:
-
-                return self.service.post_log(msg, loglevel=self._loglevel_map[level],
-                                        attachment=record.__dict__.get('attachment', None))
-
+class RPNoseLogHandler(MyMemoryHandler):
+    def __init__(self):
+        logformat = '%(name)s: %(levelname)s: %(message)s'
+        logdatefmt = None
+        filters = ['-nose', '-reportportal_client.service_async', '-reportportal_client.service']
+        super(RPNoseLogHandler, self).__init__(logformat, logdatefmt, filters)
 
 class ReportPortalPlugin(Plugin):
     can_configure = True
@@ -80,6 +46,11 @@ class ReportPortalPlugin(Plugin):
     status = {}
     enableOpt = None
     name = "reportportal"
+
+    def __init__(self):
+        super(ReportPortalPlugin, self).__init__()
+        self.stdout = []
+        self._buf = None
 
     def options(self, parser, env):
         """
@@ -91,6 +62,7 @@ class ReportPortalPlugin(Plugin):
                           default=env.get('NOSE_RP_CONFIG_FILE'),
                           dest='rp_config',
                           help='config file path')
+
         parser.add_option('--rp-launch',
                           action='store',
                           default=None,
@@ -105,9 +77,9 @@ class ReportPortalPlugin(Plugin):
 
         parser.add_option('--rp-launch-description',
                           action='store',
-                          default=None,
+                          default="",
                           dest='rp_launch_description',
-                          help='description of a lauch')
+                          help='description of a launch')
 
     def configure(self, options, conf):
         """
@@ -118,6 +90,7 @@ class ReportPortalPlugin(Plugin):
         except KeyError:
             pass
         super(ReportPortalPlugin, self).configure(options, conf)
+
         if self.enabled:
 
             self.conf = conf
@@ -149,6 +122,7 @@ class ReportPortalPlugin(Plugin):
             if "base" in config.sections():
                 self.rp_uuid = config.get("base", "rp_uuid")
                 self.rp_endpoint = config.get("base", "rp_endpoint")
+                os.environ["RP_ENDPOINT"] = self.rp_endpoint
                 self.rp_project = config.get("base", "rp_project")
                 self.rp_launch = config.get("base", "rp_launch").format(slaunch)
                 self.rp_launch_tags = config.get("base", "rp_launch_tags")
@@ -165,12 +139,6 @@ class ReportPortalPlugin(Plugin):
                 if hasattr(logger, "handlers"):
                     for handler in logger.handlers:
                         logger.removeHandler(handler)
-        # make sure there isn't one already
-        # you can't simply use "if self.handler not in root_logger.handlers"
-        # since at least in unit tests this doesn't work --
-        # LogCapture() is instantiated for each test case while root_logger
-        # is module global
-        # so we always add new MyMemoryHandler instance
         for handler in root_logger.handlers[:]:
             if isinstance(handler, RPNoseLogHandler):
                 root_logger.handlers.remove(handler)
@@ -197,13 +165,20 @@ class ReportPortalPlugin(Plugin):
                                   token=self.rp_uuid,
                                   ignore_errors=False)
 
+
         # Start launch.
         self.launch = self.service.start_launch(name=self.rp_launch,
                                                 description=self.rp_launch_description,
                                                 mode=self.rp_mode)
 
-        #self.handler = RPNoseLogHandler(service=self.service, level=logging.DEBUG, endpoint=self.rp_endpoint)
-        #self.setupLoghandler()
+        self.handler = RPNoseLogHandler()
+        self.setupLoghandler()
+
+    def _restore_stdout(self):
+        """Restore stdout.
+        """
+        while self.stdout:
+            self.end()
 
     def finalize(self, result):
         """Called after all report output, including output from all
@@ -219,6 +194,7 @@ class ReportPortalPlugin(Plugin):
            via ``python setup.py test``, this method may be called
            **before** the default report output is sent.
         """
+
         # Finish launch.
         self.service.finish_launch()
 
@@ -226,6 +202,7 @@ class ReportPortalPlugin(Plugin):
         # ensures all pending requests to server are processed.
         # Failure to call terminate() may result in lost data.
         self.service.terminate_service()
+        self._restore_stdout()
 
     def startTest(self, test):
         """Prepare or wrap an individual test case. Called before
@@ -243,8 +220,11 @@ class ReportPortalPlugin(Plugin):
         :param test: the test case
         :type test: :class:`nose.case.Test`
         """
+        self.start()
         test.status = None
+        test.errors = None
         self.service.start_nose_item(self, test)
+        self.setupLoghandler()
 
     def addDeprecated(self, test):
         """Called when a deprecated test is seen. DO NOT return a value
@@ -253,14 +233,15 @@ class ReportPortalPlugin(Plugin):
 
         .. warning :: DEPRECATED -- check error class in addError instead
         """
-        test.status = "depricated"
-        self.service.post_log("Deprecated test")
+        test.status = "deprecated"
+        self.service.post_log("DEPRECATED")
 
-    def _sendError(self, test, err):
+    def _addError(self, test, err):
         etype, value, tb = err
-        self.service.post_log(value)
-        self.service.post_log(str(etype.__name__) + ":\n" +
-                         "".join(traceback.format_tb(tb)), "ERROR")
+        test.errors = []
+
+        test.errors.append(value)
+        test.errors.append(str(etype.__name__) + ":\n" + "".join(traceback.format_tb(tb)))
 
     def addError(self, test,  err):
         """Called when a test raises an uncaught exception. DO NOT return a
@@ -273,7 +254,7 @@ class ReportPortalPlugin(Plugin):
         :type err: 3-tuple
         """
         test.status = "error"
-        self._sendError(test, err)
+        self._addError(test, err)
 
     def addFailure(self, test, err):
         """Called when a test fails. DO NOT return a value unless you
@@ -285,7 +266,7 @@ class ReportPortalPlugin(Plugin):
         :type err: sys.exc_info() tuple
         """
         test.status = "failed"
-        self._sendError(test, err)
+        self._addError(test, err)
 
     def addSkip(self, test):
         """Called when a test is skipped. DO NOT return a value unless
@@ -294,7 +275,6 @@ class ReportPortalPlugin(Plugin):
         .. warning:: DEPRECATED -- check error class in addError instead
         """
         test.status = "skipped"
-        self.service.post_log("SKIPPED test")
 
     def addSuccess(self, test):
         """Called when a test passes. DO NOT return a value unless you
@@ -304,7 +284,68 @@ class ReportPortalPlugin(Plugin):
         :type test: :class:`nose.case.Test`
         """
         test.status = "success"
-        self.service.post_log(message="OK")
+
+    def beforeTest(self, test):
+        """Clear buffers and handlers before test.
+        """
+        self.setupLoghandler()
+
+    def afterTest(self, test):
+        """Clear capture buffer.
+        """
+        self.end()
+        self._buf = None
+        self.handler.truncate()
+
+    def formatLogRecords(self):
+        return list(map(safe_str, self.handler.buffer))
+
+    def formatError(self, test, err):
+        """Add captured output to error report.
+        """
+        test.capturedOutput = output = self.buffer
+        self._buf = None
+        if not output:
+            # Don't return None as that will prevent other
+            # formatters from formatting and remove earlier formatters
+            # formats, instead return the err we got
+            return err
+        ec, ev, tb = err
+        return (ec, self.addCaptureToErr(ev, output), tb)
+
+    def formatFailure(self, test, err):
+        """Add captured output to failure report.
+        """
+        return self.formatError(test, err)
+
+    def start(self):
+        self.stdout.append(sys.stdout)
+        self._buf = StringIO()
+        # Python 3's StringIO objects don't support setting encoding or errors
+        # directly and they're already set to None.  So if the attributes
+        # already exist, skip adding them.
+        if (not hasattr(self._buf, 'encoding') and
+                hasattr(sys.stdout, 'encoding')):
+            self._buf.encoding = sys.stdout.encoding
+        if (not hasattr(self._buf, 'errors') and
+                hasattr(sys.stdout, 'errors')):
+            self._buf.errors = sys.stdout.errors
+        sys.stdout = self._buf
+
+    def end(self):
+        if self.stdout:
+            sys.stdout = self.stdout.pop()
+
+    def _get_buffer(self):
+        if self._buf is not None:
+            return self._buf.getvalue()
+
+    buffer = property(_get_buffer, None, None, """Captured stdout output.""")
+
+    def addCaptureToErr(self, ev, output):
+        ev = exc_to_unicode(ev)
+        output = force_unicode(output)
+        return u'\n'.join([ev, output])
 
     def stopTest(self, test):
         """Called after each test is run. DO NOT return a value unless
@@ -313,8 +354,19 @@ class ReportPortalPlugin(Plugin):
         :param test: the test case
         :type test: :class:`nose.case.Test`
         """
+        test.capturedOutput = self.buffer
+        test.capturedLogging = self.formatLogRecords()
+
         if test.capturedOutput:
             self.service.post_log(str(test.capturedOutput))
+
+        if test.capturedLogging:
+            for x in test.capturedLogging:
+                self.service.post_log(x)
+
+        if test.errors:
+            self.service.post_log(test.errors[0])
+            self.service.post_log(test.errors[1], loglevel="ERROR")
 
         if sys.version_info.major == 2:
             self._stop_test_2(test)
