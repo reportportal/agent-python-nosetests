@@ -25,10 +25,14 @@ import logging
 import traceback
 from nose.plugins.base import Plugin
 from nose.plugins.logcapture import MyMemoryHandler
+from nose.plugins.skip import SkipTest
+from nose.plugins.deprecated import DeprecatedTest
 from .service import NoseServiceClass
 
 from nose.pyversion import exc_to_unicode, force_unicode
 from nose.util import safe_str
+from nose.util import isclass
+
 
 log = logging.getLogger(__name__)
 
@@ -245,6 +249,18 @@ class ReportPortalPlugin(Plugin):
         test.errors.append(value)
         test.errors.append(str(etype.__name__) + ":\n" + "".join(traceback.format_tb(tb)))
 
+    def _filterErrorForSkip(self, err):
+        if isinstance(err, tuple) and isclass(err[0]):
+            if issubclass(err[0], SkipTest):
+                return True
+        return False
+
+    def _filterErrorForDepricated(self, err):
+        if isinstance(err, tuple) and isclass(err[0]):
+            if issubclass(err[0], DeprecatedTest):
+                return True
+        return False
+
     def addError(self, test,  err):
         """Called when a test raises an uncaught exception. DO NOT return a
         value unless you want to stop other plugins from seeing that the
@@ -255,8 +271,14 @@ class ReportPortalPlugin(Plugin):
         :param err: sys.exc_info() tuple
         :type err: 3-tuple
         """
-        test.status = "error"
-        self._addError(test, err)
+
+        if self._filterErrorForSkip(err):
+            self.addSkip(test)
+        elif _filterErrorForDepricated(err):
+            self.addDeprecated(test)
+        else:
+            test.status = "error"
+            self._addError(test, err)
 
     def addFailure(self, test, err):
         """Called when a test fails. DO NOT return a value unless you
