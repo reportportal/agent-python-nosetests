@@ -265,6 +265,8 @@ class ReportPortalPlugin(Plugin):
         """Called when a test raises an uncaught exception. DO NOT return a
         value unless you want to stop other plugins from seeing that the
         test has raised an error.
+        Calling addSkip() and addDeprecated() from base plugin was
+        deprecated and there is need to handle skipped and deprecated tests inside addError().
 
         :param test: the test case
         :type test: :class:`nose.case.Test`
