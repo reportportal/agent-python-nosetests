@@ -37,12 +37,14 @@ log = logging.getLogger(__name__)
 
 
 class RPNoseLogHandler(MyMemoryHandler):
-    def __init__(self):
+    def __init__(self, extended_filters=None):
         logformat = '%(name)s: %(levelname)s: %(message)s'
         logdatefmt = None
-        filters = ['-nose', '-reportportal_client.service_async', 
+        filters = ['-nose', '-reportportal_client.service_async',
                    '-reportportal_client.service', '-nose_reportportal.plugin',
-                   '-nose_reportportal.service']
+                   '-nose_reportportal.service', "-urllib3.connectionpool"]
+        if extended_filters:
+            filters.extended(extended_filters)
         super(RPNoseLogHandler, self).__init__(logformat, logdatefmt, filters)
 
 class ReportPortalPlugin(Plugin):
@@ -56,6 +58,7 @@ class ReportPortalPlugin(Plugin):
         super(ReportPortalPlugin, self).__init__()
         self.stdout = []
         self._buf = None
+        self.filters = None
 
     def options(self, parser, env):
         """
@@ -85,6 +88,13 @@ class ReportPortalPlugin(Plugin):
                           default="",
                           dest='rp_launch_description',
                           help='description of a launch')
+
+        parser.add_option('--ignore-loggers',
+                          action='store',
+                          default=[],
+                          dest='ignore_loggers',
+                          help='logger filter')
+
 
     def configure(self, options, conf):
         """
@@ -123,6 +133,10 @@ class ReportPortalPlugin(Plugin):
                         slaunch = "(component tests)"
 
             self.rp_mode = options.rp_mode if options.rp_mode in ("DEFAULT", "DEBUG") else "DEFAULT"
+
+            if options.ignore_loggers and isinstance(options.ignore_loggers, str):
+                self.filters = [x.strip() for x in options.ignore_loggers.split(",")]
+
             self.clear = True
             if "base" in config.sections():
                 self.rp_uuid = config.get("base", "rp_uuid")
@@ -176,7 +190,7 @@ class ReportPortalPlugin(Plugin):
                                                 description=self.rp_launch_description,
                                                 mode=self.rp_mode)
 
-        self.handler = RPNoseLogHandler()
+        self.handler = RPNoseLogHandler(self.filters if self.filters else None)
         self.setupLoghandler()
 
     def _restore_stdout(self):

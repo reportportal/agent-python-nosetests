@@ -60,6 +60,25 @@ If you like to override some of parameters above from command line, or from CI e
 
 `--rp-launch-description` to change description of a launch
 
+`--ignore-loggers` tto ignore external loggers and not send them in report portal. Specify which statements to filter. If the output is too verbose, use this option to filter out needless output.
+
+Example:
+
+```
+ filter=foo will capture statements issued ONLY to foo or foo.what.ever.sub  but not foobar or other logger. 
+ Specify multiple loggers with comma: filter=foo,bar,baz.  
+ If any logger name is prefixed with a minus, eg filter=-foo, it will be excluded rather than included.   
+```
+
+The following loggers are ignored 
+'nose' 
+'reportportal_client.service_async' 
+'reportportal_client.service' ,
+'nose_reportportal.plugin'
+'nose_reportportal.service'
+'urllib3.connectionpool' 
+by default.
+
 # Launching
 
 To run test with Report Portal you must provide '--with-reportportal' flag:
@@ -77,6 +96,11 @@ Licensed under the Apache License Version 2.0, license (see the LICENSE file).
 Apache License Version 2.0:  http://www.apache.org/licenses/LICENSE-2.0
 
 # Changes
+
+## Changes in version 0.0.4 
+
+* fixed bug with handling of skip status of a test
+* added argument to ignore loggers 
 
 ## Changes in version 0.0.3 
 
