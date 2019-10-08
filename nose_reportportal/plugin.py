@@ -30,8 +30,7 @@ from nose.plugins.deprecated import DeprecatedTest
 from .service import NoseServiceClass
 
 from nose.pyversion import exc_to_unicode, force_unicode
-from nose.util import safe_str
-from nose.util import isclass
+from nose.util import safe_str, isclass
 
 
 log = logging.getLogger(__name__)
