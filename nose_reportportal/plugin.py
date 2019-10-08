@@ -48,7 +48,7 @@ class RPNoseLogHandler(MyMemoryHandler):
 
 class ReportPortalPlugin(Plugin):
     can_configure = True
-    score = 200
+    score = 100000
     status = {}
     enableOpt = None
     name = "reportportal"
@@ -274,7 +274,7 @@ class ReportPortalPlugin(Plugin):
 
         if self._filterErrorForSkip(err):
             self.addSkip(test)
-        elif _filterErrorForDepricated(err):
+        elif self._filterErrorForDepricated(err):
             self.addDeprecated(test)
         else:
             test.status = "error"
