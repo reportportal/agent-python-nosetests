@@ -25,26 +25,34 @@ import logging
 import traceback
 from nose.plugins.base import Plugin
 from nose.plugins.logcapture import MyMemoryHandler
+from nose.plugins.skip import SkipTest
+from nose.plugins.deprecated import DeprecatedTest
 from .service import NoseServiceClass
 
 from nose.pyversion import exc_to_unicode, force_unicode
-from nose.util import safe_str
+from nose.util import safe_str, isclass
+
 
 log = logging.getLogger(__name__)
+# Disabled because we've already had a overloaded capturing of the logs
+LogCapture.enabled = False
 
 
 class RPNoseLogHandler(MyMemoryHandler):
-    def __init__(self):
+    def __init__(self, extended_filters=None):
         logformat = '%(name)s: %(levelname)s: %(message)s'
         logdatefmt = None
-        filters = ['-nose', '-reportportal_client.service_async', 
+        filters = ['-nose', '-reportportal_client.service_async',
                    '-reportportal_client.service', '-nose_reportportal.plugin',
                    '-nose_reportportal.service']
+        if extended_filters:
+            filters.extend(extended_filters)
         super(RPNoseLogHandler, self).__init__(logformat, logdatefmt, filters)
+
 
 class ReportPortalPlugin(Plugin):
     can_configure = True
-    score = 200
+    score = SkipTest.score + 1
     status = {}
     enableOpt = None
     name = "reportportal"
@@ -53,6 +61,7 @@ class ReportPortalPlugin(Plugin):
         super(ReportPortalPlugin, self).__init__()
         self.stdout = []
         self._buf = None
+        self.filters = None
 
     def options(self, parser, env):
         """
@@ -82,6 +91,13 @@ class ReportPortalPlugin(Plugin):
                           default="",
                           dest='rp_launch_description',
                           help='description of a launch')
+
+        parser.add_option('--ignore-loggers',
+                          action='store',
+                          default=[],
+                          dest='ignore_loggers',
+                          help='logger filter')
+
 
     def configure(self, options, conf):
         """
@@ -120,6 +136,10 @@ class ReportPortalPlugin(Plugin):
                         slaunch = "(component tests)"
 
             self.rp_mode = options.rp_mode if options.rp_mode in ("DEFAULT", "DEBUG") else "DEFAULT"
+
+            if options.ignore_loggers and isinstance(options.ignore_loggers, basestring):
+                self.filters = [x.strip() for x in options.ignore_loggers.split(",")]
+
             self.clear = True
             if "base" in config.sections():
                 self.rp_uuid = config.get("base", "rp_uuid")
@@ -173,7 +193,7 @@ class ReportPortalPlugin(Plugin):
                                                 description=self.rp_launch_description,
                                                 mode=self.rp_mode)
 
-        self.handler = RPNoseLogHandler()
+        self.handler = RPNoseLogHandler(self.filters if self.filters else None)
         self.setupLoghandler()
 
     def _restore_stdout(self):
@@ -245,18 +265,38 @@ class ReportPortalPlugin(Plugin):
         test.errors.append(value)
         test.errors.append(str(etype.__name__) + ":\n" + "".join(traceback.format_tb(tb)))
 
+    def _filterErrorForSkip(self, err):
+        if isinstance(err, tuple) and isclass(err[0]):
+            if issubclass(err[0], SkipTest):
+                return True
+        return False
+
+    def _filterErrorForDepricated(self, err):
+        if isinstance(err, tuple) and isclass(err[0]):
+            if issubclass(err[0], DeprecatedTest):
+                return True
+        return False
+
     def addError(self, test,  err):
         """Called when a test raises an uncaught exception. DO NOT return a
         value unless you want to stop other plugins from seeing that the
         test has raised an error.
+        Calling addSkip() and addDeprecated() from base plugin was
+        deprecated and there is need to handle skipped and deprecated tests inside addError().
 
         :param test: the test case
         :type test: :class:`nose.case.Test`
         :param err: sys.exc_info() tuple
         :type err: 3-tuple
         """
-        test.status = "error"
-        self._addError(test, err)
+
+        if self._filterErrorForSkip(err):
+            self.addSkip(test)
+        elif self._filterErrorForDepricated(err):
+            self.addDeprecated(test)
+        else:
+            test.status = "error"
+            self._addError(test, err)
 
     def addFailure(self, test, err):
         """Called when a test fails. DO NOT return a value unless you
