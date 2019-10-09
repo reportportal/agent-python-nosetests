@@ -34,6 +34,8 @@ from nose.util import safe_str, isclass
 
 
 log = logging.getLogger(__name__)
+# Disabled because we've already had a overloaded capturing of the logs
+LogCapture.enabled = False
 
 
 class RPNoseLogHandler(MyMemoryHandler):
@@ -42,14 +44,15 @@ class RPNoseLogHandler(MyMemoryHandler):
         logdatefmt = None
         filters = ['-nose', '-reportportal_client.service_async',
                    '-reportportal_client.service', '-nose_reportportal.plugin',
-                   '-nose_reportportal.service', "-urllib3.connectionpool"]
+                   '-nose_reportportal.service']
         if extended_filters:
-            filters.extended(extended_filters)
+            filters.extend(extended_filters)
         super(RPNoseLogHandler, self).__init__(logformat, logdatefmt, filters)
+
 
 class ReportPortalPlugin(Plugin):
     can_configure = True
-    score = 100000
+    score = SkipTest.score + 1
     status = {}
     enableOpt = None
     name = "reportportal"
@@ -134,7 +137,7 @@ class ReportPortalPlugin(Plugin):
 
             self.rp_mode = options.rp_mode if options.rp_mode in ("DEFAULT", "DEBUG") else "DEFAULT"
 
-            if options.ignore_loggers and isinstance(options.ignore_loggers, str):
+            if options.ignore_loggers and isinstance(options.ignore_loggers, basestring):
                 self.filters = [x.strip() for x in options.ignore_loggers.split(",")]
 
             self.clear = True
