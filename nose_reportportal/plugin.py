@@ -35,6 +35,7 @@ from nose.util import safe_str, isclass
 
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 # Disabled because we've already had a overloaded capturing of the logs
 LogCapture.enabled = False
 
