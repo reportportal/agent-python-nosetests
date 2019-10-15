@@ -4,13 +4,12 @@ stages:
   if: tag IS present AND fork = false
 language: python
 python:
-  - "2.7"
-  - "3.4"
-  - "3.5"
-  - "3.6"
+- '2.7'
+- '3.4'
+- '3.5'
+- '3.6'
 script:
-  - python setup.py -q install
-
+- python setup.py -q install
 jobs:
   include:
   - stage: deploy
@@ -24,4 +23,4 @@ jobs:
       distributions: sdist bdist_wheel
       user: reportportal
       password:
-        secure: nhpdigpcYQcvN6ilunCO3cIvNi3t/cyZM+ayqeq5y/1cZnnk9HEl5dVtj9zIl+EpWd6gCg8fexDVO/zekd6DXBypE4hkNqZJ/5+jeA9DOz/rrUjAAKpgIOxncXX6xms6/8UXEqIaNL4rhqzU4oQ6FBTAp8AeyUX+OPdkTWxdlIuz2KBhgqG+89VGcgzDInvymETnvBe+DlQUWGefLoOFsevHjDmk3oByWNDNVTiDbDQtIC9odLT3mivHJj6mHVehiouXuGazBLsUmgR7yo8w7tDGn3XiKCDxfzU74Ks07LxKsoqnB3rDmmCEBaYLCZE+TZbQEZRkTHughwZhY8qBsl1WLG3wE7uYk/SeUhAnGfuPfgi/NURKM20uHSdpmIpwuMT9w+p+KtgUvQX2fnh10wtReXhr/N6qvTVRHgOZFlvMg+QyKl8dTewH/3TlhW0/IN7axZT4191f5fzlJ3rbsP9zoWS/FszB+kxVkAfxKqrA388kE527rZpT6wkHp++OkRtjW6SW1m+j+/9pYgAGJ+OATfr45Yc/QpR8u3XtyE2toeK8fGTq5TV97SNOnL74iGLiUHvIvUY8co7dlouJMN5OkJ7YytljSxJoHfwfDMo1mO8Kb3Eu+q6yHE61tOkbWBdCpPtvtoBL8q72XXy4HuIHTdWRZjHA6POPmw40fTw=
+        secure: fMz+t/X6UYCziwYYxzeClioDmno46HeMzQQQOI11CeFDfCnaTJoGPdkUhbCpZlEdzgOFxuS3uqM69yLHvuKDaQKy2RwKjtKfmj/AeJ09twhMq6EeZki97iMiEtUWOzR8YqNNyjCHgjkJ36/dJgE8C5fsjJC2+twZHjmhwVRfSx7N/eJG/K4Ps7fDO0Xq2Jdf9xm7WTvc7LND4aVULoDFWgGQEaZPa15qiPm7cOBtQZHapvxcn85teJAHXNh71IYIHJsnwSvfveC0OE1i09tfUzqLxsrFlNdlIT0r8B96xZIS8zQO8UUOTAZK6ahk26LIKS+ML2jTx1b1FzEVU7VJEtWCWPjoq3PR/U9v3tBwI0Y/RwOIylHVulvNzrznE7r1Xe/qVrk5xlp9crMf0Cds90kkSCda4KvZL89VdWJJTOVT1n5VxHPo8haO3N921GCH8hsnYL12KTNA+DqjGQ7DE5irQDM6qnMT0uIgdDLfMRDfpWqKNhLxjQNfJke9zwFnAwODyalh4zklbCzXl2r0wZmj0Hy+F1y8nIb4i0UYkqn0+Ywai3MBQoolHIPXdn+EuEVqwa9r2u0jj7csQggPS35GJqO8diw34W0QZjrFPVUlrTvBSN+KKeI+6Hcpu3Umg+NfgHZkQ1QPNMC6rU/8eFAvsrwD33RZpwYf/79YHRo=
