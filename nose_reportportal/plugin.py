@@ -25,6 +25,7 @@ import logging
 import traceback
 from nose.plugins.base import Plugin
 from nose.plugins.logcapture import MyMemoryHandler
+from nose import SkipTest
 from nose.plugins.skip import Skip
 from nose.plugins.logcapture import LogCapture
 from nose.plugins.deprecated import DeprecatedTest
