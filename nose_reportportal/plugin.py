@@ -25,7 +25,9 @@ import logging
 import traceback
 from nose.plugins.base import Plugin
 from nose.plugins.logcapture import MyMemoryHandler
-from nose.plugins.skip import SkipTest
+from nose import SkipTest
+from nose.plugins.skip import Skip
+from nose.plugins.logcapture import LogCapture
 from nose.plugins.deprecated import DeprecatedTest
 from .service import NoseServiceClass
 
@@ -34,6 +36,7 @@ from nose.util import safe_str, isclass
 
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 # Disabled because we've already had a overloaded capturing of the logs
 LogCapture.enabled = False
 
@@ -52,7 +55,7 @@ class RPNoseLogHandler(MyMemoryHandler):
 
 class ReportPortalPlugin(Plugin):
     can_configure = True
-    score = SkipTest.score + 1
+    score = Skip.score + 1
     status = {}
     enableOpt = None
     name = "reportportal"

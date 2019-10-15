@@ -97,6 +97,10 @@ Apache License Version 2.0:  http://www.apache.org/licenses/LICENSE-2.0
 
 # Changes
 
+## Changes in version 0.0.5 
+
+* fixed problem with importing of LogCapture 
+
 ## Changes in version 0.0.4 
 
 * fixed bug with handling of skip status of a test
