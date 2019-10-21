@@ -11,6 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
 import os
 import sys
 if sys.version_info.major == 2:
@@ -100,7 +101,6 @@ class ReportPortalPlugin(Plugin):
                           default=[],
                           dest='ignore_loggers',
                           help='logger filter')
-
 
     def configure(self, options, conf):
         """
@@ -426,7 +426,6 @@ class ReportPortalPlugin(Plugin):
             self._stop_test_2(test)
         elif sys.version_info.major == 3:
             self._stop_test_3(test)
-
 
     def _stop_test_2(self, test):
         if test.status == "skipped":
