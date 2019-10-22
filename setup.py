@@ -43,4 +43,8 @@ setup(
             'nose_reportportal = nose_reportportal.plugin:ReportPortalPlugin',
         ]
     },
+    setup_requires=['pytest-runner'],
+    tests_require=[
+        'pytest',
+    ]
 )
