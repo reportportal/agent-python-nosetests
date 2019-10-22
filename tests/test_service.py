@@ -12,7 +12,7 @@ class TestException(Exception):
 
 class NoseServiceClassTestCase(unittest.TestCase):
 
-    def setUp(self) -> None:
+    def setUp(self):
         self.service = NoseServiceClass()
 
     @patch('nose_reportportal.service.log')

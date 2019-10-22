@@ -35,3 +35,6 @@ coverage.xml
 # Environments
 .env
 .venv
+
+# Pyenv
+.python-version
