@@ -26,8 +26,10 @@ LAUNCH_WAIT_TIMEOUT = 30
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
+
 def timestamp():
     return str(int(time() * 1000))
+
 
 class Singleton(type):
     _instances = {}
@@ -63,8 +65,7 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
                 self.ignored_tags = list(set(ignored_tags).union({'parametrize'}))
             else:
                 self.ignored_tags = ignored_tags
-            log.debug('ReportPortal - Init service: endpoint=%s, '
-                      'project=%s, uuid=%s', endpoint, project, token)
+            log.debug('ReportPortal - Init service: endpoint=%s, project=%s, uuid=%s' % (endpoint, project, token))
             self.RP = ReportPortalServiceAsync(
                 endpoint=endpoint,
                 project=project,
@@ -157,11 +158,6 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
             'status': status,
         }
         self.RP.finish_launch(**fl_rq)
-
-    def terminate_service(self, nowait=False):
-        if self.RP is not None:
-            self.RP.terminate(nowait)
-            self.RP = None
 
     def post_log(self, message, loglevel='INFO', attachment=None):
         self._stop_if_necessary()
