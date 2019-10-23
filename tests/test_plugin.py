@@ -2,8 +2,12 @@ import sys
 import unittest
 import traceback
 import random
-from unittest.mock import Mock, MagicMock
-from unittest.mock import patch
+
+if sys.version_info >= (3, 3):
+    from unittest.mock import Mock, MagicMock, patch
+else:
+    from mock import Mock, MagicMock, patch
+
 from nose import SkipTest
 from nose.plugins.deprecated import DeprecatedTest
 

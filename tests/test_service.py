@@ -1,6 +1,11 @@
+import sys
 import unittest
-from unittest.mock import Mock
-from unittest.mock import patch
+
+if sys.version_info >= (3, 3):
+    from unittest.mock import Mock, patch
+else:
+    from mock import Mock, patch
+
 from six.moves import queue
 
 from nose_reportportal.service import NoseServiceClass
