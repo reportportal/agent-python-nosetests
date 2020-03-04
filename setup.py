@@ -13,7 +13,7 @@ tar_url = 'https://github.com/reportportal/agent-python-nosetests'
 
 
 requirements = [
-    'reportportal-client>=3.1.0',
+    'reportportal-client==3.2.3',
     'nose>=1.3.0',
 ]
 
