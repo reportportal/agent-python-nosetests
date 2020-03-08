@@ -13,7 +13,7 @@ tar_url = 'https://github.com/reportportal/agent-python-nosetests'
 
 
 requirements = [
-    'reportportal-client~=3.0',
+    'reportportal-client~=5.0',
     'nose>=1.3.0',
 ]
 
@@ -43,4 +43,8 @@ setup(
             'nose_reportportal = nose_reportportal.plugin:ReportPortalPlugin',
         ]
     },
+    setup_requires=['pytest-runner'],
+    tests_require=[
+        'pytest',
+    ]
 )

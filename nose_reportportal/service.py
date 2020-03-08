@@ -14,7 +14,7 @@
 
 from six import with_metaclass
 from six.moves import queue
-from reportportal_client import ReportPortalServiceAsync
+from reportportal_client import ReportPortalService
 import sys
 import traceback
 import pkg_resources
@@ -63,9 +63,8 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
                 self.ignored_tags = list(set(ignored_tags).union({'parametrize'}))
             else:
                 self.ignored_tags = ignored_tags
-            log.debug('ReportPortal - Init service: endpoint=%s, '
-                      'project=%s, uuid=%s', endpoint, project, token)
-            self.RP = ReportPortalServiceAsync(
+            log.debug('ReportPortal - Init service: endpoint=%s, project=%s, uuid=%s', endpoint, project, token)
+            self.RP = ReportPortalService(
                 endpoint=endpoint,
                 project=project,
                 token=token,
@@ -75,8 +74,8 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
                 log_batch_size=log_batch_size,
                 # verify_ssl=verify_ssl
             )
-            if self.RP and hasattr(self.RP.rp_client, "get_project_settings"):
-                 self.project_settiings = self.RP.rp_client.get_project_settings()
+            if self.RP and hasattr(self.RP, "get_project_settings"):
+                 self.project_settiings = self.RP.get_project_settings()
             else:
                  self.project_settiings = None
             self.issue_types = self.get_issue_types()
