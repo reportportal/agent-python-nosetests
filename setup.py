@@ -8,7 +8,7 @@ def read_file(fname):
         return f.read()
 
 
-version = '0.0.7'
+version = '1.0.0'
 tar_url = 'https://github.com/reportportal/agent-python-nosetests'
 
 
