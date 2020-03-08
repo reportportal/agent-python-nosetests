@@ -8,12 +8,12 @@ def read_file(fname):
         return f.read()
 
 
-version = '0.0.6'
+version = '0.0.7'
 tar_url = 'https://github.com/reportportal/agent-python-nosetests'
 
 
 requirements = [
-    'reportportal-client==3.2.3',
+    'reportportal-client~=3.0',
     'nose>=1.3.0',
 ]
 

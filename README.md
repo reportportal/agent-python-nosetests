@@ -96,9 +96,9 @@ Licensed under the Apache License Version 2.0, license (see the LICENSE file).
 Apache License Version 2.0:  http://www.apache.org/licenses/LICENSE-2.0
 
 # Changes
-## Changes in version 0.0.6 
+## Changes in version 0.0.6 and 0.0.7 
 
-* friezedпше ыф version of python client for RP 4.0
+* freezed version of python client for RP 4.0
 
 ## Changes in version 0.0.5 
 
