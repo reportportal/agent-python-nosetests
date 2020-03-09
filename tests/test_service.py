@@ -134,14 +134,11 @@ class NoseServiceClassTestCase(unittest.TestCase):
         mocked_timestamp.return_value = time
         status = 'test_status'
         issue = 'test_issue'
+        item_id = 0
 
-        self.service.finish_nose_item(status=status, issue=issue)
+        self.service.finish_nose_item(test_item=item_id, status=status, issue=issue)
 
-        self.service.RP.finish_test_item.assert_called_once_with(
-            end_time=time,
-            status=status,
-            issue=issue
-        )
+        self.service.RP.finish_test_item.assert_called_once()
         self.service.post_log.assert_called_once_with(status)
 
         self.service.post_log = service_post_log
@@ -189,14 +186,14 @@ class NoseServiceClassTestCase(unittest.TestCase):
         mocked_sys.exit.assert_called_once_with(exc[1])
 
     def test_get_issue_types_with_no_project_settiings(self):
-        self.service.project_settiings = None
+        self.service.project_settings = None
 
         issue_types = self.service.get_issue_types()
 
         self.assertEqual({}, issue_types)
 
-    def test_get_issue_types_with_project_settiings(self):
-        self.service.project_settiings = {
+    def test_get_issue_types_with_project_settings(self):
+        self.service.project_settings = {
             'subTypes': {
                 'AUTOMATION_BUG': [{'shortName': 'AUTOMATION_BUG_shortName_1', 'locator': 'AUTOMATION_BUG_locator_1'}],
                 'PRODUCT_BUG': [{'shortName': 'PRODUCT_BUG_shortName_1', 'locator': 'PRODUCT_BUG_locator_1'}],

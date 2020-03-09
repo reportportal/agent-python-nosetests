@@ -154,51 +154,57 @@ class ReportPortalPluginTestCase(unittest.TestCase):
 
     def test__stop_test_2_with_test_status_skipped(self):
         self.test_object.status = 'skipped'
+        self.test_object.test_item = 0
 
         self.plugin._stop_test_2(self.test_object)
 
-        self.plugin.service.finish_nose_item.assert_called_once_with(status='SKIPPED')
+        self.plugin.service.finish_nose_item.assert_called_once_with(self.test_object.test_item, status='SKIPPED')
 
     def test__stop_test_2_with_test_status_success(self):
         self.test_object.status = 'success'
+        self.test_object.test_item = 0
 
         self.plugin._stop_test_2(self.test_object)
 
-        self.plugin.service.finish_nose_item.assert_called_once_with(status='PASSED')
+        self.plugin.service.finish_nose_item.assert_called_once_with(self.test_object.test_item, status='PASSED')
 
     def test__stop_test_2_with_test_other_status(self):
         self.test_object.status = 'other'
+        self.test_object.test_item = 0
 
         self.plugin._stop_test_2(self.test_object)
 
-        self.plugin.service.finish_nose_item.assert_called_once_with(status='FAILED')
+        self.plugin.service.finish_nose_item.assert_called_once_with(self.test_object.test_item, status='FAILED')
 
     def test__stop_test_3_with_test_status_skipped(self):
         self.test_object.test._outcome.skipped = True
         self.test_object.test._outcome.success = False
         self.test_object.test._outcome.other = False
+        self.test_object.test_item = 0
 
         self.plugin._stop_test_3(self.test_object)
 
-        self.plugin.service.finish_nose_item.assert_called_once_with(status='SKIPPED')
+        self.plugin.service.finish_nose_item.assert_called_once_with(self.test_object.test_item, status='SKIPPED')
 
     def test__stop_test_3_with_test_status_success(self):
         self.test_object.test._outcome.skipped = False
         self.test_object.test._outcome.success = True
         self.test_object.test._outcome.other = False
+        self.test_object.test_item = 0
 
         self.plugin._stop_test_3(self.test_object)
 
-        self.plugin.service.finish_nose_item.assert_called_once_with(status='PASSED')
+        self.plugin.service.finish_nose_item.assert_called_once_with(self.test_object.test_item, status='PASSED')
 
     def test__stop_test_3_with_test_other_status(self):
         self.test_object.test._outcome.skipped = False
         self.test_object.test._outcome.success = False
         self.test_object.test._outcome.other = True
+        self.test_object.test_item = 0
 
         self.plugin._stop_test_3(self.test_object)
 
-        self.plugin.service.finish_nose_item.assert_called_once_with(status='FAILED')
+        self.plugin.service.finish_nose_item.assert_called_once_with(self.test_object.test_item, status='FAILED')
 
 
 if __name__ == '__main__':

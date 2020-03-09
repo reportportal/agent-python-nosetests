@@ -26,8 +26,10 @@ LAUNCH_WAIT_TIMEOUT = 30
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
+
 def timestamp():
     return str(int(time() * 1000))
+
 
 class Singleton(type):
     _instances = {}
@@ -43,7 +45,7 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
     def __init__(self):
         self.RP = None
         try:
-            pkg_resources.get_distribution('reportportal_client >= 3.2.0')
+            pkg_resources.get_distribution('reportportal_client ~= 5.0')
             self.RP_SUPPORTS_PARAMETERS = True
         except pkg_resources.VersionConflict:
             self.RP_SUPPORTS_PARAMETERS = False
@@ -74,10 +76,12 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
                 log_batch_size=log_batch_size,
                 # verify_ssl=verify_ssl
             )
+
             if self.RP and hasattr(self.RP, "get_project_settings"):
-                 self.project_settiings = self.RP.get_project_settings()
+                self.project_settings = self.RP.get_project_settings()
             else:
-                 self.project_settiings = None
+                self.project_settings = None
+
             self.issue_types = self.get_issue_types()
         else:
             log.debug('The pytest is already initialized')
@@ -128,16 +132,17 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
             "item_type": "TEST",
             "parameters": {},
         }
-        self.RP.start_test_item(**start_rq)
         self.post_log(name)
+        return self.RP.start_test_item(**start_rq)
 
-    def finish_nose_item(self, status, issue=None):
+    def finish_nose_item(self, test_item, status, issue=None):
         self._stop_if_necessary()
         if self.RP is None:
             return
 
         self.post_log(status)
         fta_rq = {
+            'item_id': test_item,
             'end_time': timestamp(),
             'status': status,
             'issue': issue,
@@ -145,7 +150,7 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
 
         self.RP.finish_test_item(**fta_rq)
 
-    def finish_launch(self, launch=None, status='rp_launch'):
+    def finish_launch(self, status=None):
         self._stop_if_necessary()
         if self.RP is None:
             return
@@ -192,11 +197,12 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
 
     def get_issue_types(self):
         issue_types = {}
-        if not self.project_settiings:
-             return issue_types
+
+        if not self.project_settings:
+            return issue_types
 
         for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE", "NO_DEFECT", "TO_INVESTIGATE"):
-            for item in self.project_settiings["subTypes"][item_type]:
+            for item in self.project_settings["subTypes"][item_type]:
                 issue_types[item["shortName"]] = item["locator"]
 
         return issue_types

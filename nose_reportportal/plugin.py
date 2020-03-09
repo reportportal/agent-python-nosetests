@@ -248,7 +248,7 @@ class ReportPortalPlugin(Plugin):
         self.start()
         test.status = None
         test.errors = None
-        self.service.start_nose_item(self, test)
+        test.test_item = self.service.start_nose_item(self, test)
         self.setupLoghandler()
 
     def addDeprecated(self, test):
@@ -427,22 +427,21 @@ class ReportPortalPlugin(Plugin):
         elif sys.version_info.major == 3:
             self._stop_test_3(test)
 
-
     def _stop_test_2(self, test):
         if test.status == "skipped":
-            self.service.finish_nose_item(status="SKIPPED")
+            self.service.finish_nose_item(test.test_item, status="SKIPPED")
         elif test.status == "success":
-            self.service.finish_nose_item(status="PASSED")
+            self.service.finish_nose_item(test.test_item, status="PASSED")
         else:
-            self.service.finish_nose_item(status="FAILED")
+            self.service.finish_nose_item(test.test_item, status="FAILED")
 
     def describeTest(self, test):
         return test.test._testMethodDoc
 
     def _stop_test_3(self, test):
         if test.test._outcome.skipped:
-            self.service.finish_nose_item(status="SKIPPED")
+            self.service.finish_nose_item(test.test_item, status="SKIPPED")
         elif test.test._outcome.success:
-            self.service.finish_nose_item(status="PASSED")
+            self.service.finish_nose_item(test.test_item, status="PASSED")
         else:
-            self.service.finish_nose_item(status="FAILED")
+            self.service.finish_nose_item(test.test_item, status="FAILED")
