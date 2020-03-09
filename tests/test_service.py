@@ -56,17 +56,6 @@ class NoseServiceClassTestCase(unittest.TestCase):
             params['endpoint'], params['project'], params['token']
         )
 
-    @patch.object(NoseServiceClass, 'terminate_service')
-    def test_async_error_handler(self, mocked_terminate_service):
-        exc_info = (TestException, TestException('test exception info'), Mock())
-        self.service._errors = Mock()
-        self.service.async_error_handler(exc_info)
-
-        mocked_terminate_service.assert_called_once_with(nowait=True)
-        self.service._errors.put_nowait.assert_called_once_with(exc_info)
-        self.assertIsNone(self.service.RP)
-
-        self.service._errors = queue.Queue()
 
     def test_terminate_service(self):
         params = {
@@ -172,18 +161,6 @@ class NoseServiceClassTestCase(unittest.TestCase):
             level='INFO',
             attachment=None,
         )
-
-    @patch('nose_reportportal.service.sys')
-    @patch('nose_reportportal.service.traceback')
-    def test__stop_if_necessary(self, mocked_traceback, mocked_sys):
-        exc = (TestException, TestException('test exception info'), Mock())
-        self.service._errors.put(exc)
-        self.service.ignore_errors = False
-
-        self.service._stop_if_necessary()
-
-        mocked_traceback.print_exception.assert_called_once_with(exc[0], exc[1], exc[2])
-        mocked_sys.exit.assert_called_once_with(exc[1])
 
     def test_get_issue_types_with_no_project_settiings(self):
         self.service.project_settings = None

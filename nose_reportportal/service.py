@@ -13,7 +13,6 @@
 #  limitations under the License.
 
 from six import with_metaclass
-from six.moves import queue
 from reportportal_client import ReportPortalService
 import sys
 import traceback
@@ -53,12 +52,10 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
         self.ignore_errors = True
         self.ignored_tags = []
 
-        self._errors = queue.Queue()
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
 
     def init_service(self, endpoint, project, token, ignore_errors=True,
                      ignored_tags=[], log_batch_size=20, queue_get_timeout=5, retries=0):
-        self._errors = queue.Queue()
         if self.RP is None:
             self.ignore_errors = ignore_errors
             if self.RP_SUPPORTS_PARAMETERS:
@@ -70,8 +67,6 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
                 endpoint=endpoint,
                 project=project,
                 token=token,
-                error_handler=self.async_error_handler,
-                queue_get_timeout=queue_get_timeout,
                 retries=retries,
                 log_batch_size=log_batch_size,
                 # verify_ssl=verify_ssl
@@ -87,21 +82,10 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
             log.debug('The pytest is already initialized')
         return self.RP
 
-    def async_error_handler(self, exc_info):
-        self.terminate_service(nowait=True)
-        self.RP = None
-        self._errors.put_nowait(exc_info)
-
-    def terminate_service(self, nowait=False):
-        if self.RP is not None:
-            self.RP.terminate(nowait)
-            self.RP = None
-
     def start_launch(self, name,
                      mode=None,
                      tags=None,
                      description=None):
-        self._stop_if_necessary()
         if self.RP is None:
             return
 
@@ -115,7 +99,6 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
         self.RP.start_launch(**sl_pt)
 
     def start_nose_item(self, ev, test=None):
-        self._stop_if_necessary()
         if self.RP is None:
             return
         tags = []
@@ -136,7 +119,6 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
         return self.RP.start_test_item(**start_rq)
 
     def finish_nose_item(self, test_item, status, issue=None):
-        self._stop_if_necessary()
         if self.RP is None:
             return
 
@@ -151,7 +133,6 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
         self.RP.finish_test_item(**fta_rq)
 
     def finish_launch(self, status=None):
-        self._stop_if_necessary()
         if self.RP is None:
             return
 
@@ -168,7 +149,6 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
             self.RP = None
 
     def post_log(self, message, loglevel='INFO', attachment=None):
-        self._stop_if_necessary()
         if self.RP is None:
             return
 
@@ -184,16 +164,6 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
             'attachment': attachment,
         }
         self.RP.log(**sl_rq)
-
-    def _stop_if_necessary(self):
-        try:
-            exc, msg, tb = self._errors.get(False)
-            traceback.print_exception(exc, msg, tb)
-            sys.stderr.flush()
-            if not self.ignore_errors:
-                sys.exit(msg)
-        except queue.Empty:
-            pass
 
     def get_issue_types(self):
         issue_types = {}
