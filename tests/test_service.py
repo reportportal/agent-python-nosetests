@@ -138,7 +138,7 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
         self.service.finish_nose_item(test_item=item_id, status=status, issue=issue)
 
-        self.service.RP.finish_test_item.assert_called_once()
+        self.service.RP.finish_test_item.assert_called()
         self.service.post_log.assert_called_once_with(status)
 
         self.service.post_log = service_post_log
