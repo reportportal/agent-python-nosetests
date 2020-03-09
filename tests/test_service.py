@@ -6,12 +6,10 @@ if sys.version_info >= (3, 3):
 else:
     from mock import Mock, patch
 
-from six.moves import queue
-
 from nose_reportportal.service import NoseServiceClass
 
 
-class TestException(Exception):
+class TestException(Exception) :
     pass
 
 
@@ -127,7 +125,9 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
         self.service.finish_nose_item(test_item=item_id, status=status, issue=issue)
 
-        self.service.RP.finish_test_item.assert_called()
+        self.service.RP.finish_test_item.assert_called_once_with(
+            end_time=time, issue=issue, item_id=item_id, status=status
+        )
         self.service.post_log.assert_called_once_with(status)
 
         self.service.post_log = service_post_log
