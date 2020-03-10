@@ -1,5 +1,7 @@
 import sys
 import unittest
+from delayed_assert import delayed_assert, expect, assert_expectations
+
 
 if sys.version_info >= (3, 3):
     from unittest.mock import Mock, patch
@@ -20,7 +22,7 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
     @patch('nose_reportportal.service.log')
     def test_init_service_with_RP_already_exists(self, mocked_log):
-        self.service.RP = Mock()
+        self.service.rp = Mock()
         params = {
             'endpoint': Mock(),
             'project': Mock(),
@@ -29,13 +31,14 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
         rp = self.service.init_service(**params)
 
-        self.assertIsNotNone(rp)
-        mocked_log.debug.assert_called_once_with('The pytest is already initialized')
+        expect(lambda: self.assertIsNotNone(rp))
+        expect(lambda: mocked_log.debug.assert_called_once_with('The pytest is already initialized'))
+        assert_expectations()
 
     @patch('reportportal_client.service.requests')
     @patch('nose_reportportal.service.log')
     def test_init_service_with_no_RP_exists(self, mocked_log, mocked_requests):
-        self.service.RP = None
+        self.service.rp = None
         params = {
             'endpoint': 'http://test_endpoint',
             'project': 'test_project',
@@ -44,15 +47,16 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
         rp = self.service.init_service(**params)
 
-        self.assertIsNotNone(rp)
-        self.assertEqual(params['endpoint'], self.service.RP.endpoint)
-        self.assertEqual(params['project'], self.service.RP.project)
-        self.assertEqual(params['token'], self.service.RP.token)
+        expect(lambda: self.assertIsNotNone(rp))
+        expect(lambda: self.assertEqual(params['endpoint'], self.service.rp.endpoint))
+        expect(lambda: self.assertEqual(params['project'], self.service.rp.project))
+        expect(lambda: self.assertEqual(params['token'], self.service.rp.token))
 
-        mocked_log.debug.assert_called_once_with(
+        expect(lambda: mocked_log.debug.assert_called_once_with(
             'ReportPortal - Init service: endpoint=%s, project=%s, uuid=%s',
             params['endpoint'], params['project'], params['token']
-        )
+        ))
+        assert_expectations()
 
 
     def test_terminate_service(self):
@@ -66,18 +70,18 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
         self.service.terminate_service()
 
-        self.assertIsNone(self.service.RP)
+        self.assertIsNone(self.service.rp)
 
     @patch('nose_reportportal.service.timestamp')
     def test_start_launch(self, mocked_timestamp):
         name = 'test_name'
         time = 123456789
         mocked_timestamp.return_value = time
-        self.service.RP = Mock()
+        self.service.rp = Mock()
 
         self.service.start_launch(name=name)
 
-        self.service.RP.start_launch.assert_called_once_with(
+        self.service.rp.start_launch.assert_called_once_with(
             name=name,
             start_time=time,
             description=None,
@@ -87,7 +91,7 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
     @patch('nose_reportportal.service.timestamp')
     def test_start_nose_item(self, mocked_timestamp):
-        self.service.RP = Mock()
+        self.service.rp = Mock()
         service_post_log = self.service.post_log
         self.service.post_log = Mock()
         time = 123456789
@@ -100,21 +104,22 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
         self.service.start_nose_item(ev=ev, test=test)
 
-        self.service.RP.start_test_item.assert_called_once_with(
+        expect(lambda: self.service.rp.start_test_item.assert_called_once_with(
             name=name,
             description=ev.describeTest(),
             tags=test.test.suites,
             start_time=mocked_timestamp(),
             item_type='TEST',
             parameters={}
-        )
-        self.service.post_log.assert_called_once_with(name)
+        ))
+        expect(lambda: self.service.post_log.assert_called_once_with(name))
 
         self.service.post_log = service_post_log
+        assert_expectations()
 
     @patch('nose_reportportal.service.timestamp')
     def test_finish_nose_item(self, mocked_timestamp):
-        self.service.RP = Mock()
+        self.service.rp = Mock()
         service_post_log = self.service.post_log
         self.service.post_log = Mock()
         time = 123456789
@@ -125,37 +130,38 @@ class NoseServiceClassTestCase(unittest.TestCase):
 
         self.service.finish_nose_item(test_item=item_id, status=status, issue=issue)
 
-        self.service.RP.finish_test_item.assert_called_once_with(
+        expect(lambda: self.service.rp.finish_test_item.assert_called_once_with(
             end_time=time, issue=issue, item_id=item_id, status=status
-        )
-        self.service.post_log.assert_called_once_with(status)
+        ))
+        expect(lambda: self.service.post_log.assert_called_once_with(status))
+        assert_expectations()
 
         self.service.post_log = service_post_log
 
     @patch('nose_reportportal.service.timestamp')
     def test_finish_launch(self, mocked_timestamp):
-        self.service.RP = Mock()
+        self.service.rp = Mock()
         status = 'test_status'
         time = 123456789
         mocked_timestamp.return_value = time
 
         self.service.finish_launch(status=status)
 
-        self.service.RP.finish_launch.assert_called_once_with(
+        self.service.rp.finish_launch.assert_called_once_with(
             end_time=time,
             status=status
         )
 
     @patch('nose_reportportal.service.timestamp')
     def test_post_log(self, mocked_timestamp):
-        self.service.RP = Mock()
+        self.service.rp = Mock()
         message = 'test_message'
         time = 123456789
         mocked_timestamp.return_value = time
 
         self.service.post_log(message=message)
 
-        self.service.RP.log.assert_called_once_with(
+        self.service.rp.log.assert_called_once_with(
             message=message,
             time=time,
             level='INFO',

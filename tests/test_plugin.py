@@ -2,6 +2,8 @@ import sys
 import unittest
 import traceback
 import random
+from delayed_assert import delayed_assert, expect, assert_expectations
+
 
 if sys.version_info >= (3, 3):
     from unittest.mock import Mock, MagicMock, patch
@@ -34,8 +36,10 @@ class ReportPortalPluginTestCase(unittest.TestCase):
     def test_addDeprecated(self):
         self.plugin.addDeprecated(self.test_object)
 
-        self.assertEqual(self.test_object.status, 'deprecated')
-        self.plugin.service.post_log.assert_called_once_with('DEPRECATED')
+        expect(lambda: self.assertEqual(self.test_object.status, 'deprecated'))
+        expect(lambda: self.plugin.service.post_log.assert_called_once_with('DEPRECATED'))
+        assert_expectations()
+
 
     def test_addSkip(self):
         self.plugin.addSkip(self.test_object)
@@ -48,8 +52,9 @@ class ReportPortalPluginTestCase(unittest.TestCase):
 
         self.plugin.addError(self.test_object, err)
 
-        self.assertEqual('error', self.test_object.status)
-        mocked__addError.assert_called_once_with(self.test_object, err)
+        expect(lambda: self.assertEqual('error', self.test_object.status))
+        expect(lambda: mocked__addError.assert_called_once_with(self.test_object, err))
+        assert_expectations()
 
     @patch.object(ReportPortalPlugin, 'addSkip')
     def test_addError_with_SkipTest_exception(self, mocked_addSkip):
@@ -77,8 +82,9 @@ class ReportPortalPluginTestCase(unittest.TestCase):
 
         self.plugin._addError(self.test_object, err)
 
-        self.assertEqual(expected_test_err_value, self.test_object.errors[0])
-        self.assertEqual(expected_test_err_info, self.test_object.errors[1])
+        expect(lambda: self.assertEqual(expected_test_err_value, self.test_object.errors[0]))
+        expect(lambda: self.assertEqual(expected_test_err_info, self.test_object.errors[1]))
+        assert_expectations()
 
     @patch.object(ReportPortalPlugin, '_addError')
     def test_addFailure(self, mocked__addError):
@@ -86,8 +92,10 @@ class ReportPortalPluginTestCase(unittest.TestCase):
 
         self.plugin.addFailure(self.test_object, err)
 
-        self.assertEqual('failed', self.test_object.status)
-        mocked__addError.assert_called_once_with(self.test_object, err)
+        expect(lambda: self.assertEqual('failed', self.test_object.status))
+        expect(lambda: mocked__addError.assert_called_once_with(self.test_object, err))
+        assert_expectations()
+
 
     def test_end(self):
         self.plugin.stdout.append(MagicMock())
@@ -108,9 +116,10 @@ class ReportPortalPluginTestCase(unittest.TestCase):
     def test_finalize(self, mocked__restore_stdout):
         self.plugin.finalize(result=Mock())
 
-        self.plugin.service.finish_launch.assert_called_once_with()
-        self.plugin.service.terminate_service.assert_called_once_with()
-        mocked__restore_stdout.assert_called_once_with()
+        expect(lambda: self.plugin.service.finish_launch.assert_called_once_with())
+        expect(lambda: self.plugin.service.terminate_service.assert_called_once_with())
+        expect(lambda: mocked__restore_stdout.assert_called_once_with())
+        assert_expectations()
 
     @patch.object(ReportPortalPlugin, 'setupLoghandler')
     @patch.object(ReportPortalPlugin, 'start')
@@ -120,11 +129,12 @@ class ReportPortalPluginTestCase(unittest.TestCase):
 
         self.plugin.startTest(self.test_object)
 
-        self.assertIsNone(self.test_object.status)
-        self.assertIsNone(self.test_object.errors)
-        self.plugin.service.start_nose_item.assert_called_once_with(self.plugin, self.test_object)
-        mocked_start.assert_called_once_with()
-        mocked_setupLoghandler.assert_called_once_with()
+        expect(lambda: self.assertIsNone(self.test_object.status))
+        expect(lambda: self.assertIsNone(self.test_object.errors))
+        expect(lambda: self.plugin.service.start_nose_item.assert_called_once_with(self.plugin, self.test_object))
+        expect(lambda: mocked_start.assert_called_once_with())
+        expect(lambda: mocked_setupLoghandler.assert_called_once_with())
+        assert_expectations()
 
     @patch.object(ReportPortalPlugin, 'setupLoghandler')
     def test_before_test(self, mocked_setupLoghandler):
@@ -139,9 +149,10 @@ class ReportPortalPluginTestCase(unittest.TestCase):
 
         self.plugin.afterTest(test=Mock())
 
-        self.assertIsNone(self.plugin._buf)
-        self.plugin.handler.truncate.assert_called_once_with()
-        mocked_end.assert_called_once_with()
+        expect(lambda: self.assertIsNone(self.plugin._buf))
+        expect(lambda: self.plugin.handler.truncate.assert_called_once_with())
+        expect(lambda: mocked_end.assert_called_once_with())
+        assert_expectations()
 
     def test_formatLogRecords(self):
         self.plugin.handler = Mock()
