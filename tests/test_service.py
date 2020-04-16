@@ -110,7 +110,7 @@ class NoseServiceClassTestCase(unittest.TestCase):
             tags=test.test.suites,
             start_time=mocked_timestamp(),
             item_type='TEST',
-            parameters={}
+            parameters=None
         ))
         expect(lambda: self.service.post_log.assert_called_once_with(name))
 

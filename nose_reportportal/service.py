@@ -113,7 +113,7 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
             "tags": tags,
             "start_time": timestamp(),
             "item_type": "TEST",
-            "parameters": {},
+            "parameters": None,
         }
         self.post_log(name)
         return self.rp.start_test_item(**start_rq)
