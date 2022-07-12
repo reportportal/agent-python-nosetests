@@ -404,21 +404,21 @@ class ReportPortalPlugin(Plugin):
 
         if test.capturedOutput:
             try: 
-                self.service.post_log(safe_str(test.capturedOutput))
+                self.service.post_log(safe_str(test.capturedOutput),test_item=test.test_item)
             except Exception:
                 log.exception('Unexpected error during sending capturedOutput.')
 
         if test.capturedLogging:
             for x in test.capturedLogging:
                 try: 
-                    self.service.post_log(safe_str(x))
+                    self.service.post_log(safe_str(x), test_item=test.test_item)
                 except Exception:
                     log.exception('Unexpected error during sending capturedLogging.')
 
         if test.errors:
             try: 
-                self.service.post_log(safe_str(test.errors[0]))
-                self.service.post_log(safe_str(test.errors[1]), loglevel="ERROR")
+                self.service.post_log(safe_str(test.errors[0]),test_item=test.test_item)
+                self.service.post_log(safe_str(test.errors[1]), loglevel="ERROR", test_item=test.test_item)
             except Exception:
                 log.exception('Unexpected error during sending errors.')
 
