@@ -155,8 +155,8 @@ class ReportPortalPlugin(Plugin):
                 self.rp_endpoint = config.get("base", "rp_endpoint")
                 os.environ["RP_ENDPOINT"] = self.rp_endpoint
                 self.rp_project = config.get("base", "rp_project")
-                self.rp_launch = config.get("base", "rp_launch").format(slaunch)
-                self.rp_launch_tags = config.get("base", "rp_launch_tags")
+                self.rp_launch = options.rp_launch or config.get("base", "rp_launch").format(slaunch)
+                self.rp_launch_tags = options.rp_launch_tags or config.get("base", "rp_launch_tags")
                 self.rp_launch_description = options.rp_launch_description or config.get("base", "rp_launch_description")
 
     def setupLoghandler(self):
