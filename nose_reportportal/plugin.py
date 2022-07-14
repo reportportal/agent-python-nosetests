@@ -95,6 +95,12 @@ class ReportPortalPlugin(Plugin):
                           dest='rp_launch_description',
                           help='description of a launch')
 
+        parser.add_option('--rp-launch-tags',
+                          action='store',
+                          default="",
+                          dest='rp_launch_tags',
+                          help='description of a launch')
+
         parser.add_option('--ignore-loggers',
                           action='store',
                           default=[],
