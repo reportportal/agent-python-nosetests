@@ -149,7 +149,7 @@ class ReportPortalPlugin(Plugin):
             if options.ignore_loggers and isinstance(options.ignore_loggers, basestring):
                 self.filters = [x.strip() for x in options.ignore_loggers.split(",")]
 
-            self.clear = True
+            self.clear = False
             if "base" in config.sections():
                 self.rp_uuid = config.get("base", "rp_uuid")
                 self.rp_endpoint = config.get("base", "rp_endpoint")
