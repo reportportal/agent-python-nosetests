@@ -37,8 +37,8 @@ from nose.util import safe_str, isclass
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
-# Disabled because we've already had a overloaded capturing of the logs
-LogCapture.enabled = False
+# TODO maybe make this configurable
+LogCapture.enabled = True
 
 
 class RPNoseLogHandler(MyMemoryHandler):
@@ -95,6 +95,12 @@ class ReportPortalPlugin(Plugin):
                           dest='rp_launch_description',
                           help='description of a launch')
 
+        parser.add_option('--rp-launch-tags',
+                          action='store',
+                          default="",
+                          dest='rp_launch_tags',
+                          help='description of a launch')
+
         parser.add_option('--ignore-loggers',
                           action='store',
                           default=[],
@@ -143,14 +149,14 @@ class ReportPortalPlugin(Plugin):
             if options.ignore_loggers and isinstance(options.ignore_loggers, basestring):
                 self.filters = [x.strip() for x in options.ignore_loggers.split(",")]
 
-            self.clear = True
+            self.clear = False
             if "base" in config.sections():
                 self.rp_uuid = config.get("base", "rp_uuid")
                 self.rp_endpoint = config.get("base", "rp_endpoint")
                 os.environ["RP_ENDPOINT"] = self.rp_endpoint
                 self.rp_project = config.get("base", "rp_project")
-                self.rp_launch = config.get("base", "rp_launch").format(slaunch)
-                self.rp_launch_tags = config.get("base", "rp_launch_tags")
+                self.rp_launch = options.rp_launch or config.get("base", "rp_launch").format(slaunch)
+                self.rp_launch_tags = options.rp_launch_tags or config.get("base", "rp_launch_tags")
                 self.rp_launch_description = options.rp_launch_description or config.get("base", "rp_launch_description")
 
     def setupLoghandler(self):
@@ -404,21 +410,21 @@ class ReportPortalPlugin(Plugin):
 
         if test.capturedOutput:
             try: 
-                self.service.post_log(safe_str(test.capturedOutput))
+                self.service.post_log(safe_str(test.capturedOutput),test_item=test.test_item)
             except Exception:
                 log.exception('Unexpected error during sending capturedOutput.')
 
         if test.capturedLogging:
             for x in test.capturedLogging:
                 try: 
-                    self.service.post_log(safe_str(x))
+                    self.service.post_log(safe_str(x), test_item=test.test_item)
                 except Exception:
                     log.exception('Unexpected error during sending capturedLogging.')
 
         if test.errors:
             try: 
-                self.service.post_log(safe_str(test.errors[0]))
-                self.service.post_log(safe_str(test.errors[1]), loglevel="ERROR")
+                self.service.post_log(safe_str(test.errors[0]),test_item=test.test_item)
+                self.service.post_log(safe_str(test.errors[1]), loglevel="ERROR", test_item=test.test_item)
             except Exception:
                 log.exception('Unexpected error during sending errors.')
 

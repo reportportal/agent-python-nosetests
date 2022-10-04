@@ -122,7 +122,7 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
         if self.rp is None:
             return
 
-        self.post_log(status)
+        self.post_log(status, test_item=test_item)
         fta_rq = {
             'item_id': test_item,
             'end_time': timestamp(),
@@ -148,7 +148,7 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
             self.rp.terminate(nowait)
             self.rp = None
 
-    def post_log(self, message, loglevel='INFO', attachment=None):
+    def post_log(self, message, loglevel='INFO', attachment=None, test_item=None):
         if self.rp is None:
             return
 
@@ -162,6 +162,7 @@ class NoseServiceClass(with_metaclass(Singleton, object)):
             'message': message,
             'level': loglevel,
             'attachment': attachment,
+            'item_id': test_item
         }
         self.rp.log(**sl_rq)
 
